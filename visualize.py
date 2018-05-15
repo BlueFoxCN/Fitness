@@ -11,13 +11,62 @@ from threading import Event
 
 from cfgs.config import cfg
 
+
+
+
+import tkinter as tk
+from tkinter.filedialog import askopenfilename, askdirectory
+from tkinter.messagebox import askquestion
+# from fitness import Extractor
+from PIL import Image
+from PIL import ImageTk
+import os
+import time
+import uuid
+import pdb
+from GUI.widgets import *
+
+
+
 class Mode(Enum):
     OVERLAP = 1
     SIDE_BY_SIDE = 2
 
-class VisualizeThread(Thread):
+class VisualizeThread():
+    def __init_gui(self):
+
+        self.window = tk.Tk()
+        self.window.wm_title('VideoText')
+        self.window.config(background = '#FFFFFF')
+
+        self.canvas = ICanvas(self.window, width = cfg.output_width*2, height = cfg.output_height)
+        self.canvas.grid(row = 0, column = 0)
+
+        self.fm_control = tk.Frame(self.window, width=cfg.output_width*2, height=100, background = '#FFFFFF')
+        self.fm_control.grid(row = 1, column=0, padx=10, pady=2)
+        self.btn_prev_frame = tk.Button(self.fm_control, text='Start', command = self._start)
+        self.btn_prev_frame.grid(row = 0, column=0, padx=10, pady=2)
+        self.lb_current_frame = tk.Label(self.fm_control, background = '#FFFFFF')
+        self.lb_current_frame.grid(row = 0, column=1, padx=10, pady=2)
+        self.lb_current_frame['text'] = '----'
+        self.btn_next_frame = tk.Button(self.fm_control, text='New', command = None)
+        self.btn_next_frame.grid(row = 0, column=2, padx=10, pady=2)
+
+
+        self.fm_status = tk.Frame(self.window, width = 100, height = 100, background = '#FFFFFF')
+        self.fm_status.grid(row = 0, column=1, padx=10, pady=2)
+  
+        self.btn_prev_frame1 = tk.Button(self.fm_status, text='Start', command = self._start)
+        self.btn_prev_frame1.grid(row = 0, column=0, padx=10, pady=2)
+        
+
+        self.btn_next_frame3 = tk.Button(self.fm_status, text='New', command = None)
+        self.btn_next_frame3.grid(row = 1, column=0, padx=10, pady=20)
+        
     def __init__(self, result_queue, enable_predict, visualize_queue, output_path=None):
-        Thread.__init__(self)
+
+        # Thread.__init__(self)
+
         self.result_queue = result_queue
         self.visualize_queue = visualize_queue
         self.enable_predict = enable_predict
@@ -72,6 +121,8 @@ class VisualizeThread(Thread):
 
         self.init_frame_num = 10
         self.frame_idx = 0
+        self.__init_gui()
+        self.window.mainloop()
 
     def transform_std_img(self, std_idx):
         if len(self.trans_std_imgs) > std_idx:
@@ -152,15 +203,23 @@ class VisualizeThread(Thread):
                 result_img = blend_fg + img_bg
             if self.output_path != None and cfg.capture_frame_num != -1:
                 videoWrite.write(result_img)
-            cv2.imshow('frame', result_img)
+            # cv2.imshow('frame', result_img)
+
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
             # self.visualize_queue.put(result_img)
+            result_img = cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
+            print(result_img.shape)
+            self.canvas.add(result_img)
+            self.window.update_idletasks()#快速重画屏幕  
+            self.window.update()
 
         if self.output_path != None and cfg.capture_frame_num != -1:
             videoWrite.release()
         cv2.destroyAllWindows()
         print("done")
+    def _start(self):
+        self.run()
 
 if __name__ == "__main__":
     result_queue = Queue(maxsize=cfg.max_queue_len)

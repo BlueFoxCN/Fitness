@@ -29,4 +29,6 @@ if __name__ == "__main__":
     detect_thread.start()
 
     visualize_thread = VisualizeThread(result_queue, enable_predict, visualize_queue, output_path="output.mp4")
-    visualize_thread.start()
+    # visualize_thread.run()
+    # vi = VisualizeThread()
+

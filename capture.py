@@ -26,7 +26,7 @@ class CaptureThread(Thread):
         while (True if self.from_camera == True else self.cap.isOpened()):
             self.enable_capture.wait()
             ret, frame = self.cap.read()
-
+            
             frame_idx = (frame_idx + 1) % 1e5
 
             if frame_idx % int(30 / cfg.fps) == 0:
