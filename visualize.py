@@ -62,8 +62,6 @@ class VisualizeThread():
         
     def __init__(self, result_queue, enable_predict, visualize_queue, action, output_path=None):
 
-        # Thread.__init__(self)
-
         self.result_queue = result_queue
         self.visualize_queue = visualize_queue
         self.enable_predict = enable_predict
@@ -84,14 +82,12 @@ class VisualizeThread():
         self.window.mainloop()
 
 
-
     def run(self):
         self.init_peaks = []
         self.enable_predict.set()
-        # std_idx = -1
 
         if self.output_path != None and cfg.capture_frame_num != -1:
-            if self.mode == Mode.SIDE_BY_SIDE:
+            if self.mode == Mode.SIDE_BY_SIDE or self.mode == Mode.BOTH:
                 videoWrite = cv2.VideoWriter(self.output_path, cv2.VideoWriter_fourcc(*'mp4v'), 20, (2 * cfg.output_width, cfg.output_height))
             else:   # The OVERLAP mode
                 videoWrite = cv2.VideoWriter(self.output_path, cv2.VideoWriter_fourcc(*'mp4v'), 20, (cfg.output_width, cfg.output_height))
@@ -119,13 +115,7 @@ class VisualizeThread():
 
             peak, img = ret
 
-            # std_idx = (std_idx + 1) % self.std_frame_num
-            # trans_std_peak = self.action.trans_std_peaks[std_idx]
-            # trans_std_img = self.action.trans_std_imgs[std_idx]
-            # trans_std_mask = self.action.trans_std_masks[std_idx]
-
             trans_std_img, trans_std_mask = self.action.next_frame()
-
 
             img_resize = cv2.resize(img, (cfg.output_width, cfg.output_height))
 
@@ -151,7 +141,6 @@ class VisualizeThread():
                 result_img[:, cfg.output_width:] = trans_std_img
 
 
-
             if self.output_path != None and cfg.capture_frame_num != -1:
                 videoWrite.write(result_img)
             # cv2.imshow('frame', result_img)
@@ -162,7 +151,7 @@ class VisualizeThread():
             result_img = cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
             # print(result_img.shape)
             self.canvas.add(result_img)
-            self.window.update_idletasks()#快速重画屏幕  
+            self.window.update_idletasks()  #快速重画屏幕  
             self.window.update()
 
         if self.output_path != None and cfg.capture_frame_num != -1:
@@ -173,9 +162,11 @@ class VisualizeThread():
     def _start(self):
         self.run()
 
+'''
 if __name__ == "__main__":
     result_queue = Queue(maxsize=cfg.max_queue_len)
     enable_predict = Event()
 
     visualize_thread = VisualizeThread(result_queue, enable_predict, output_path="output_2.mp4")
     visualize_thread.start()
+'''

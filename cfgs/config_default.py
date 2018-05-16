@@ -8,7 +8,7 @@ cfg.max_queue_len = 10000
 
 # for capture
 cfg.cam_idx = 1
-cfg.capture_frame_num = -1
+cfg.capture_frame_num = 300
 cfg.fps = 10 # choose from 30, 15, 10, 7.5, 6, 5
 
 # for detect
