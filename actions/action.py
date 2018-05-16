@@ -16,6 +16,8 @@ class Action:
 
         self.frame_idx = -1
 
+        self.info_buffer = []
+
         # for each frame, each peak has the format (x_coord, y_coord)
         x_min = np.min([np.min([e[0] for e in one_frame_peaks if len(e) > 0]) for one_frame_peaks in self.std_peaks])
         x_max = np.max([np.max([e[0] for e in one_frame_peaks if len(e) > 0]) for one_frame_peaks in self.std_peaks])

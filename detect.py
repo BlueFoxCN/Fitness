@@ -66,6 +66,6 @@ class DetectThread(Thread):
             if frame.shape == (0, 0):
                 self.result_queue.put([])
                 break
-            peaks, img = detect(frame, self.predict_func, scale=0.5, draw_result=True)
+            peaks, img = detect(frame, self.predict_func, scale=0.5, draw_result=False)
             # print(time.time())
             self.result_queue.put([peaks, img])

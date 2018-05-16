@@ -36,9 +36,10 @@ class VisualizeThread():
         self.window.wm_title('VideoText')
         self.window.config(background = '#FFFFFF')
 
-        self.canvas = ICanvas(self.window, width = cfg.output_width*2, height = cfg.output_height)
+        self.canvas = ICanvas(self.window, width = cfg.output_width * 2, height = cfg.output_height)
         self.canvas.grid(row = 0, column = 0)
 
+        '''
         self.fm_control = tk.Frame(self.window, width=cfg.output_width*2, height=100, background = '#FFFFFF')
         self.fm_control.grid(row = 1, column=0, padx=10, pady=2)
         self.btn_prev_frame = tk.Button(self.fm_control, text='Start', command = self._start)
@@ -48,10 +49,21 @@ class VisualizeThread():
         self.lb_current_frame['text'] = '----'
         self.btn_next_frame = tk.Button(self.fm_control, text='New', command = None)
         self.btn_next_frame.grid(row = 0, column=2, padx=10, pady=2)
+        '''
+       
+        self.fm_control = tk.Frame(self.window, width=cfg.output_width*2, height=20, background = 'white')
+        self.fm_control.grid(row = 1, column=0, sticky=tk.W, padx=2, pady=5)
+
+        self.lb_status = tk.Text(self.fm_control, height=18,  background = 'white')
+        self.lb_status.grid(row = 0, column=2, padx=10, pady=5)
+        # self.lb_status.insert(1.0,"因为你在我心中是那么的具体") 
+        
+        # self.btn_next_frame = tk.Button(self.fm_control, text='New', command = None)
+        # self.btn_next_frame.grid(row = 0, column=2, padx=10, pady=2)
 
 
         self.fm_status = tk.Frame(self.window, width = 100, height = 100, background = '#FFFFFF')
-        self.fm_status.grid(row = 0, column=1, padx=10, pady=2)
+        self.fm_status.grid(row = 0, column=1, padx=0, pady=2)
   
         self.btn_prev_frame1 = tk.Button(self.fm_status, text='Start', command = self._start)
         self.btn_prev_frame1.grid(row = 0, column=0, padx=10, pady=2)
@@ -94,27 +106,25 @@ class VisualizeThread():
 
         frame_idx = 0
 
+        temp_data = []
+
         while True:
             ret = self.result_queue.get()
             if len(ret) == 0:
                 break
 
-            print(frame_idx)
-            print(time.time())
+            # print(frame_idx)
+            # print(time.time())
             frame_idx += 1
-
-            '''
-            self.img_queue.append(ret)
-            # wait until the queue has some images
-            if len(self.img_queue) < cfg.min_qsize:
-                continue
-
-            # the queue has at least 10 elements
-            peaks = [e[0] for e in self.img_queue]
-            '''
 
             peak, img = ret
 
+            temp_data.append([peak, img])
+
+            _, text, result_img = self.action.push_new_frame(peak, img)
+
+
+            '''
             trans_std_img, trans_std_mask = self.action.next_frame()
 
             img_resize = cv2.resize(img, (cfg.output_width, cfg.output_height))
@@ -139,11 +149,20 @@ class VisualizeThread():
                 result_img = np.zeros((cfg.output_height, 2 * cfg.output_width, 3), dtype=np.uint8)
                 result_img[:, :cfg.output_width] = overlap_result_img
                 result_img[:, cfg.output_width:] = trans_std_img
+            '''
 
 
             if self.output_path != None and cfg.capture_frame_num != -1:
                 videoWrite.write(result_img)
             # cv2.imshow('frame', result_img)
+
+            '''
+            a = ["中文", "BBBBBBBBBBBBB"]
+            if (frame_idx // 10) % 2 == 0:
+                text = a[0]
+            else:
+                text = a[1]
+            '''
 
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
@@ -151,15 +170,25 @@ class VisualizeThread():
             result_img = cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
             # print(result_img.shape)
             self.canvas.add(result_img)
+            if text != "" and text != None:
+                self.lb_status.insert(1.0, '\n')
+                self.lb_status.insert(1.0, text)
+                self.lb_status.update_idletasks()
+            # print(text)
             self.window.update_idletasks()  #快速重画屏幕  
             self.window.update()
 
         if self.output_path != None and cfg.capture_frame_num != -1:
             videoWrite.release()
         cv2.destroyAllWindows()
+
+        f = open('temp.pkl', 'wb')
+        pickle.dump(temp_data, f)
+
         print("done")
 
     def _start(self):
+        time.sleep(3)
         self.run()
 
 '''
