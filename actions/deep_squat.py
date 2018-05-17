@@ -40,6 +40,7 @@ class DeepSquat(Action):
 
     def _correct_tip(self):
         tips = []
+        text_list = []
         # 1. 下蹲时是否到位
         bottom_frames = [(idx, e) for idx, e in enumerate(self.info_buffer) if e.is_status('bottom')]
 
@@ -52,11 +53,13 @@ class DeepSquat(Action):
                 return False
 
         if len(bottom_frames) > 0:
-            last_bottom_frame = self.info_buffer[idx]
+            last_bottom_frame_idx = bottom_frames[-1][0]
+            last_bottom_frame = self.info_buffer[last_bottom_frame_idx]
             if DeepSquatTip.tip_1 not in last_bottom_frame.tips:
                 if check_1(last_bottom_frame):
-                    tips.append("下蹲不到位")
-                    self.info_buffer[idx].tips.append(DeepSquatTip.tip_1)
+                    tips.append("tips/tip_1.wav")
+                    text_list.append("下蹲不到位")
+                    self.info_buffer[last_bottom_frame_idx].tips.append(DeepSquatTip.tip_1)
 
         '''
         # 2. 膝盖是否太靠前了
@@ -68,7 +71,7 @@ class DeepSquat(Action):
             else:
                 return False
         '''
-        return tips
+        return tips, text_list
 
 
     def push_new_frame(self, peaks, img):
@@ -98,7 +101,7 @@ class DeepSquat(Action):
                 self.info_buffer[-25].set_status("bottom")
 
         # judge whether the action is correct and generate the tips
-        tips = self._correct_tip()
+        tips, text_list = self._correct_tip()
 
         # generate the shown image
         img = self._draw_result(img, peaks)
@@ -115,8 +118,5 @@ class DeepSquat(Action):
         result_img[:, :cfg.output_width] = img_resize
         result_img[:, cfg.output_width:] = std_img
 
-        # text = "输出 %.2f" % time.time() if np.random.randint(10) < 1 else None
-        # return None, text, result_img
-
         # return None, ", ".join(tips) + "   %s" % str(key_frame), result_img
-        return None, key_frame, result_img
+        return tips, key_frame, result_img

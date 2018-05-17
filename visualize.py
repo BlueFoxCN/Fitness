@@ -29,7 +29,7 @@ class Mode(Enum):
     SIDE_BY_SIDE = 2
     BOTH = 3
 
-class VisualizeThread():
+class VisualizeGUI():
     def __init_gui(self):
 
         self.window = tk.Tk()
@@ -39,18 +39,6 @@ class VisualizeThread():
         self.canvas = ICanvas(self.window, width = cfg.output_width * 2, height = cfg.output_height)
         self.canvas.grid(row = 0, column = 0)
 
-        '''
-        self.fm_control = tk.Frame(self.window, width=cfg.output_width*2, height=100, background = '#FFFFFF')
-        self.fm_control.grid(row = 1, column=0, padx=10, pady=2)
-        self.btn_prev_frame = tk.Button(self.fm_control, text='Start', command = self._start)
-        self.btn_prev_frame.grid(row = 0, column=0, padx=10, pady=2)
-        self.lb_current_frame = tk.Label(self.fm_control, background = '#FFFFFF')
-        self.lb_current_frame.grid(row = 0, column=1, padx=10, pady=2)
-        self.lb_current_frame['text'] = '----'
-        self.btn_next_frame = tk.Button(self.fm_control, text='New', command = None)
-        self.btn_next_frame.grid(row = 0, column=2, padx=10, pady=2)
-        '''
-       
         self.fm_control = tk.Frame(self.window, width=cfg.output_width*2, height=20, background = 'white')
         self.fm_control.grid(row = 1, column=0, sticky=tk.W, padx=2, pady=5)
 
@@ -58,26 +46,22 @@ class VisualizeThread():
         self.lb_status.grid(row = 0, column=2, padx=10, pady=5)
         # self.lb_status.insert(1.0,"因为你在我心中是那么的具体") 
         
-        # self.btn_next_frame = tk.Button(self.fm_control, text='New', command = None)
-        # self.btn_next_frame.grid(row = 0, column=2, padx=10, pady=2)
-
-
         self.fm_status = tk.Frame(self.window, width = 100, height = 100, background = '#FFFFFF')
         self.fm_status.grid(row = 0, column=1, padx=0, pady=2)
   
         self.btn_prev_frame1 = tk.Button(self.fm_status, text='Start', command = self._start)
         self.btn_prev_frame1.grid(row = 0, column=0, padx=10, pady=2)
         
-
         self.btn_next_frame3 = tk.Button(self.fm_status, text='New', command = None)
         self.btn_next_frame3.grid(row = 1, column=0, padx=10, pady=20)
         
-    def __init__(self, result_queue, enable_predict, visualize_queue, action, output_path=None):
+    def __init__(self, result_queue, audio_thread, enable_predict, visualize_queue, action, output_path=None):
 
         self.result_queue = result_queue
         self.visualize_queue = visualize_queue
         self.enable_predict = enable_predict
         self.action = action
+        self.audio_thread = audio_thread
 
         self.img_queue = []
 
@@ -106,67 +90,27 @@ class VisualizeThread():
 
         frame_idx = 0
 
-        temp_data = []
-
         while True:
             ret = self.result_queue.get()
             if len(ret) == 0:
                 break
 
-            # print(frame_idx)
-            # print(time.time())
             frame_idx += 1
 
             peak, img = ret
 
-            temp_data.append([peak, img])
+            tips, text, result_img = self.action.push_new_frame(peak, img)
 
-            _, text, result_img = self.action.push_new_frame(peak, img)
-
-
-            '''
-            trans_std_img, trans_std_mask = self.action.next_frame()
-
-            img_resize = cv2.resize(img, (cfg.output_width, cfg.output_height))
-
-            if self.mode == Mode.SIDE_BY_SIDE:
-                result_img = np.zeros((cfg.output_height, 2 * cfg.output_width, 3), dtype=np.uint8)
-                result_img[:, :cfg.output_width] = img_resize
-                result_img[:, cfg.output_width:] = trans_std_img
-            elif self.mode == Mode.OVERLAP:   # The OVERLAP mode
-                blend = cv2.addWeighted(img_resize, 0.5, trans_std_img, 0.5, 0)
-                blend_fg = cv2.bitwise_and(blend, blend, mask=trans_std_mask)
-                mask_inv = cv2.bitwise_not(trans_std_mask)
-                img_bg = cv2.bitwise_and(img_resize, img_resize, mask=mask_inv)
-                result_img = blend_fg + img_bg
-            else:       # The BOTH mode
-                blend = cv2.addWeighted(img_resize, 0.5, trans_std_img, 0.5, 0)
-                blend_fg = cv2.bitwise_and(blend, blend, mask=trans_std_mask)
-                mask_inv = cv2.bitwise_not(trans_std_mask)
-                img_bg = cv2.bitwise_and(img_resize, img_resize, mask=mask_inv)
-                overlap_result_img = blend_fg + img_bg
-
-                result_img = np.zeros((cfg.output_height, 2 * cfg.output_width, 3), dtype=np.uint8)
-                result_img[:, :cfg.output_width] = overlap_result_img
-                result_img[:, cfg.output_width:] = trans_std_img
-            '''
-
+            if self.audio_thread.qsize() == 0 and self.audio_thread.is_playing == False:
+                for tip in tips:
+                    self.audio_thread.put(tip)
 
             if self.output_path != None and cfg.capture_frame_num != -1:
                 videoWrite.write(result_img)
             # cv2.imshow('frame', result_img)
+            # if cv2.waitKey(1) & 0xFF == ord('q'):
+            #     break
 
-            '''
-            a = ["中文", "BBBBBBBBBBBBB"]
-            if (frame_idx // 10) % 2 == 0:
-                text = a[0]
-            else:
-                text = a[1]
-            '''
-
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-            # self.visualize_queue.put(result_img)
             result_img = cv2.cvtColor(result_img, cv2.COLOR_BGR2RGB)
             # print(result_img.shape)
             self.canvas.add(result_img)
@@ -182,8 +126,8 @@ class VisualizeThread():
             videoWrite.release()
         cv2.destroyAllWindows()
 
-        f = open('temp.pkl', 'wb')
-        pickle.dump(temp_data, f)
+        # f = open('temp.pkl', 'wb')
+        # pickle.dump(temp_data, f)
 
         print("done")
 
