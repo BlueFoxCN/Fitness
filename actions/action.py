@@ -26,8 +26,8 @@ class Action:
 
         self.net_width = x_max - x_min
         self.net_height = y_max - y_min
-        self.std_crop_width = int(self.net_width * 1.3)
-        self.std_crop_height = int(self.net_height * 1.3)
+        self.std_crop_width = int(self.net_width * 1.8)
+        self.std_crop_height = int(self.net_height * 1.8)
 
         if self.std_crop_width / cfg.output_width > self.std_crop_height / cfg.output_height:
             self.std_crop_height = int(self.std_crop_width / cfg.output_width * cfg.output_height)
@@ -59,6 +59,13 @@ class Action:
         pad_top = np.maximum(0, 0 - self.std_crop_y_start)
         pad_right = np.maximum(0, self.std_crop_x_end - self.std_width)
         pad_bot = np.maximum(0, self.std_crop_y_end - self.std_height)
+
+        print("AAAAAAAAAAAAAAAAAAAA")
+        print(pad_top)
+        print(pad_bot)
+        print("AAAAAAAAAAAAAAAAAAAA")
+        pad_top = pad_top + 60
+        pad_bot = pad_bot - 60
 
         trans_std_img = np.pad(self.std_imgs[std_idx], ((pad_top, pad_bot), (pad_left, pad_right), (0, 0)), 'edge')
         trans_std_mask = np.pad(self.std_masks[std_idx], ((pad_top, pad_bot), (pad_left, pad_right)), 'constant', constant_values=0)

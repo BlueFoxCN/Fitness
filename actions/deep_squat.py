@@ -24,6 +24,7 @@ class DeepSquat(Action):
     def __init__(self, data_path):
         self.frame_interval = 2
         self.shown_part = [0, 1, 2, 3, 4, 8, 9, 10, 14, 16]
+        self.temp = 0
         Action.__init__(self, data_path, self.frame_interval)
 
     def _draw_result(self, img, peaks):
@@ -41,9 +42,15 @@ class DeepSquat(Action):
     def _correct_tip(self):
         tips = []
         text_list = []
-        # 1. 下蹲时是否到位
         bottom_frames = [(idx, e) for idx, e in enumerate(self.info_buffer) if e.is_status('bottom')]
 
+        if len(bottom_frames) == 0:
+            return tips, text_list
+
+        last_bottom_frame_idx = bottom_frames[-1][0]
+        last_bottom_frame = self.info_buffer[last_bottom_frame_idx]
+
+        # 1. 下蹲时是否到位
         def check_1(frame):
             # check if the right hip is two much higher than the right knee
             if frame.r_hip.y != None and frame.r_knee.y != None and \
@@ -52,26 +59,55 @@ class DeepSquat(Action):
             else:
                 return False
 
-        if len(bottom_frames) > 0:
-            last_bottom_frame_idx = bottom_frames[-1][0]
-            last_bottom_frame = self.info_buffer[last_bottom_frame_idx]
-            if DeepSquatTip.tip_1 not in last_bottom_frame.tips:
-                if check_1(last_bottom_frame):
-                    tips.append("tips/tip_1.wav")
-                    text_list.append("下蹲不到位")
-                    self.info_buffer[last_bottom_frame_idx].tips.append(DeepSquatTip.tip_1)
+        if DeepSquatTip.tip_1 not in last_bottom_frame.tips:
+            if check_1(last_bottom_frame):
+                tips.append("tips/tip_1.wav")
+                text_list.append("下蹲不到位")
+                self.info_buffer[last_bottom_frame_idx].tips.append(DeepSquatTip.tip_1)
+                return tips, text_list
 
-        '''
         # 2. 膝盖是否太靠前了
         def check_2(frame):
             # check if the right knee is two much in front of the right ankle
+            print(frame.r_knee.x - frame.r_ankle.x)
             if frame.r_knee.y != None and frame.r_knee.y != None and \
-                frame.r_knee.x - frame.r_ankle.x > 20:
+                frame.r_knee.x - frame.r_ankle.x > 10:
                 return True
             else:
                 return False
-        '''
+
+        if DeepSquatTip.tip_2 not in last_bottom_frame.tips:
+            if check_2(last_bottom_frame):
+                tips.append("tips/tip_2.wav")
+                text_list.append("膝盖太靠前了")
+                self.info_buffer[last_bottom_frame_idx].tips.append(DeepSquatTip.tip_2)
+                return tips, text_list
+
+        # 3. 腰背是否没有挺直
+        def check_3(frame):
+            # check if the right shoulder is two much in front of the right hip
+            if frame.r_shoulder.y != None and frame.r_hip.y != None and \
+                frame.r_shoulder.x - frame.r_hip.x > 40:
+                return True
+            else:
+                return False
+
+        if DeepSquatTip.tip_3 not in last_bottom_frame.tips:
+            if check_3(last_bottom_frame):
+                tips.append("tips/tip_3.wav")
+                text_list.append("腰背没有挺直")
+                self.info_buffer[last_bottom_frame_idx].tips.append(DeepSquatTip.tip_3)
+                return tips, text_list
+
+
+        # 4. 表扬动作到位
+        if True:
+            if len(last_bottom_frame.tips) == 0:
+                tips.append("tips/good_tip_1.wav")
+                text_list.append("动作很到位")
+            self.temp = (self.temp + 1) % 30
         return tips, text_list
+
 
 
     def push_new_frame(self, peaks, img):
@@ -79,14 +115,11 @@ class DeepSquat(Action):
 
         if len(self.info_buffer) >= cfg.max_buffer_len:
             del(self.info_buffer[0])
-        # self.info_buffer.append({"data": [peaks, img], "status": None})
         self.info_buffer.append(Frame(peaks, img))
-
 
         # use the right hip to determine the action cycle
         # get the y-coord of right_hip in past frames
         r_hip_y = [e.r_hip.y for e in self.info_buffer]
-
 
         # if r_hip_y is the greatest in the neighbourhood with length 50, then it is a bottom frame
         # if r_hip_y is the smallest in the neighbourhood with length 50, then it is a top frame
@@ -114,9 +147,8 @@ class DeepSquat(Action):
         overlap_result_img = blend_fg + img_bg
 
         result_img = np.zeros((cfg.output_height, 2 * cfg.output_width, 3), dtype=np.uint8)
-        # result_img[:, :cfg.output_width] = overlap_result_img
-        result_img[:, :cfg.output_width] = img_resize
+        result_img[:, :cfg.output_width] = overlap_result_img
+        # result_img[:, :cfg.output_width] = img_resize
         result_img[:, cfg.output_width:] = std_img
 
-        # return None, ", ".join(tips) + "   %s" % str(key_frame), result_img
         return tips, key_frame, result_img
