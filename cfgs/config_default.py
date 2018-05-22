@@ -15,7 +15,7 @@ cfg.fps = 10 # choose from 30, 15, 10, 7.5, 6, 5
 cfg.model_path = "model_files/mobilenetv2_pose_estimation"
 
 # for visualize
-cfg.std_data_path = "deep_squat.pkl"
+cfg.std_data_dir = "std_data"
 
 cfg.output_height = 640
 cfg.output_width = 480

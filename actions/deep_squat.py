@@ -1,17 +1,74 @@
 import numpy as np
+import os
 from enum import Enum
 import time
 import matplotlib
 import cv2
 
 from cfgs.config import cfg
-from .action import Action
+from .action import Action, Tip
 from .frame import *
 
-class DeepSquatTip(Enum):
-    tip_1 = 1
-    tip_2 = 2
-    tip_3 = 3
+class DeepSquatTip1(Tip):
+    def __init__(self):
+        self.action_name = "deep_squat"
+        self.tip_name = "tip_1"
+        self.text = "下蹲不到位"
+        self.tip = self._tip_path(self.tip_name)
+
+    def _check(self, frame):
+        # check if the right hip is two much higher than the right knee
+        if frame.r_hip.y != None and frame.r_knee.y != None and \
+            frame.r_knee.y - frame.r_hip.y > 10:
+            return True
+        else:
+            return False
+
+
+class DeepSquatTip2(Tip):
+    def __init__(self):
+        self.action_name = "deep_squat"
+        self.tip_name = "tip_2"
+        self.text = "膝盖太靠前了"
+        self.tip = self._tip_path(self.tip_name)
+
+    def _check(self, frame):
+        # check if the right knee is two much in front of the right ankle
+        if frame.r_knee.y != None and frame.r_knee.y != None and \
+            frame.r_knee.x - frame.r_ankle.x > 10:
+            return True
+        else:
+            return False
+
+
+class DeepSquatTip3(Tip):
+    def __init__(self):
+        self.action_name = "deep_squat"
+        self.tip_name = "tip_3"
+        self.text = "腰背没有挺直"
+        self.tip = self._tip_path(self.tip_name)
+
+    def _check(self, frame):
+        # check if the right shoulder is two much in front of the right hip
+        if frame.r_shoulder.y != None and frame.r_hip.y != None and \
+            frame.r_shoulder.x - frame.r_hip.x > 40:
+            return True
+        else:
+            return False
+
+class DeepSquatTip4(Tip):
+    def __init__(self):
+        self.action_name = "deep_squat"
+        self.tip_name = "good_tip_1"
+        self.text = "动作很到位"
+        self.tip = self._tip_path(self.tip_name)
+
+    def _check(self, frame):
+        if len(frame.tips) == 0:
+            return True
+        else:
+            return False
+
 
 # the part oder:
 # 0:nose         1:neck           2:right_shoulder   3:right_elbow
@@ -21,25 +78,15 @@ class DeepSquatTip(Enum):
 # 16:right_ear   17:left_ear
 
 class DeepSquat(Action):
-    def __init__(self, data_path):
+    def __init__(self):
         self.frame_interval = 2
         self.shown_part = [0, 1, 2, 3, 4, 8, 9, 10, 14, 16]
-        self.temp = 0
-        Action.__init__(self, data_path, self.frame_interval)
+        self.name = "deep_squat"
+        self.correct_tips = [DeepSquatTip1(), DeepSquatTip2(), DeepSquatTip3()]
+        self.praise_tips = [DeepSquatTip4()]
+        Action.__init__(self, os.path.join(cfg.std_data_dir, "%s.pkl" % self.name), self.frame_interval)
 
-    def _draw_result(self, img, peaks):
-        canvas = np.copy(img) # B,G,R order
-        cmap = matplotlib.cm.get_cmap('hsv')
-        for i, peak in enumerate(peaks):
-            if len(peak) == 0 or i not in self.shown_part:
-                continue
-            rgba = np.array(cmap(1 - i/18. - 1./36))
-            rgba[0:3] *= 255
-            cv2.circle(img, peaks[i][0:2], 4, cfg.part_colors[i], thickness=-1)
-            img_with_result = cv2.addWeighted(img, 0.5, canvas, 0.5, 0)
-        return img_with_result
-
-    def _correct_tip(self):
+    def _get_tips(self):
         tips = []
         text_list = []
         bottom_frames = [(idx, e) for idx, e in enumerate(self.info_buffer) if e.is_status('bottom')]
@@ -50,63 +97,21 @@ class DeepSquat(Action):
         last_bottom_frame_idx = bottom_frames[-1][0]
         last_bottom_frame = self.info_buffer[last_bottom_frame_idx]
 
-        # 1. 下蹲时是否到位
-        def check_1(frame):
-            # check if the right hip is two much higher than the right knee
-            if frame.r_hip.y != None and frame.r_knee.y != None and \
-                frame.r_knee.y - frame.r_hip.y > 10:
-                return True
-            else:
-                return False
-
-        if DeepSquatTip.tip_1 not in last_bottom_frame.tips:
-            if check_1(last_bottom_frame):
-                tips.append("tips/tip_1.wav")
-                text_list.append("下蹲不到位")
-                self.info_buffer[last_bottom_frame_idx].tips.append(DeepSquatTip.tip_1)
+        for tip_idx, correct_tip in enumerate(self.correct_tips):
+            tip, text = correct_tip.check(last_bottom_frame)
+            tips.append(tip) if tip is not None else None
+            text_list.append(text) if text is not None else None
+            if len(tips) > 0:
                 return tips, text_list
 
-        # 2. 膝盖是否太靠前了
-        def check_2(frame):
-            # check if the right knee is two much in front of the right ankle
-            print(frame.r_knee.x - frame.r_ankle.x)
-            if frame.r_knee.y != None and frame.r_knee.y != None and \
-                frame.r_knee.x - frame.r_ankle.x > 10:
-                return True
-            else:
-                return False
-
-        if DeepSquatTip.tip_2 not in last_bottom_frame.tips:
-            if check_2(last_bottom_frame):
-                tips.append("tips/tip_2.wav")
-                text_list.append("膝盖太靠前了")
-                self.info_buffer[last_bottom_frame_idx].tips.append(DeepSquatTip.tip_2)
+        for praise_tip in self.praise_tips:
+            tip, text = praise_tip.check(last_bottom_frame)
+            tips.append(tip) if tip is not None else None
+            text_list.append(text) if text is not None else None
+            if len(tips) > 0:
                 return tips, text_list
 
-        # 3. 腰背是否没有挺直
-        def check_3(frame):
-            # check if the right shoulder is two much in front of the right hip
-            if frame.r_shoulder.y != None and frame.r_hip.y != None and \
-                frame.r_shoulder.x - frame.r_hip.x > 40:
-                return True
-            else:
-                return False
-
-        if DeepSquatTip.tip_3 not in last_bottom_frame.tips:
-            if check_3(last_bottom_frame):
-                tips.append("tips/tip_3.wav")
-                text_list.append("腰背没有挺直")
-                self.info_buffer[last_bottom_frame_idx].tips.append(DeepSquatTip.tip_3)
-                return tips, text_list
-
-        # 4. 表扬动作到位
-        if True:
-            if len(last_bottom_frame.tips) == 0:
-                tips.append("tips/good_tip_1.wav")
-                text_list.append("动作很到位")
-            self.temp = (self.temp + 1) % 30
         return tips, text_list
-
 
     def push_new_frame(self, peaks, img):
         std_img, std_mask = self.next_frame()
@@ -131,7 +136,7 @@ class DeepSquat(Action):
                 self.info_buffer[-25].set_status("bottom")
 
         # judge whether the action is correct and generate the tips
-        tips, text_list = self._correct_tip()
+        tips, text_list = self._get_tips()
 
         # generate the shown image
         img = self._draw_result(img, peaks)

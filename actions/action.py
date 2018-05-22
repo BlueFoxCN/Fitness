@@ -1,8 +1,25 @@
 import pickle
+import os
 import numpy as np
+import matplotlib
 import cv2
 
 from cfgs.config import cfg
+
+class Tip:
+    def __init__(self):
+        pass
+
+    def _tip_path(self, tip_name):
+        return os.path.join('tips', self.action_name, "%s.wav" % tip_name)
+
+    def check(self, frame):
+        if self.tip not in frame.tips and self._check(frame):
+            frame.tips.append(self.tip)
+            return self.tip, self.text
+        else:
+            return None, None
+
 
 class Action:
     def __init__(self, data_path, frame_interval):
@@ -95,7 +112,7 @@ class Action:
             img_with_result = cv2.addWeighted(img, 0.5, canvas, 0.5, 0)
         return img_with_result
 
-
     def next_frame(self):
         self.frame_idx = (self.frame_idx + 1) % self.frame_num
         return [self.trans_std_imgs[self.frame_idx], self.trans_std_masks[self.frame_idx]]
+
