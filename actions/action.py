@@ -60,10 +60,6 @@ class Action:
         pad_right = np.maximum(0, self.std_crop_x_end - self.std_width)
         pad_bot = np.maximum(0, self.std_crop_y_end - self.std_height)
 
-        print("AAAAAAAAAAAAAAAAAAAA")
-        print(pad_top)
-        print(pad_bot)
-        print("AAAAAAAAAAAAAAAAAAAA")
         pad_top = pad_top + 60
         pad_bot = pad_bot - 60
 
@@ -86,6 +82,18 @@ class Action:
         self.trans_std_peaks.append(trans_std_peaks)
 
         return [self.trans_std_imgs[std_idx], self.trans_std_masks[std_idx], self.trans_std_peaks[std_idx]]
+
+    def _draw_result(self, img, peaks):
+        canvas = np.copy(img) # B,G,R order
+        cmap = matplotlib.cm.get_cmap('hsv')
+        for i, peak in enumerate(peaks):
+            if len(peak) == 0 or i not in self.shown_part:
+                continue
+            rgba = np.array(cmap(1 - i/18. - 1./36))
+            rgba[0:3] *= 255
+            cv2.circle(img, peaks[i][0:2], 4, cfg.part_colors[i], thickness=-1)
+            img_with_result = cv2.addWeighted(img, 0.5, canvas, 0.5, 0)
+        return img_with_result
 
 
     def next_frame(self):

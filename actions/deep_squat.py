@@ -99,7 +99,6 @@ class DeepSquat(Action):
                 self.info_buffer[last_bottom_frame_idx].tips.append(DeepSquatTip.tip_3)
                 return tips, text_list
 
-
         # 4. 表扬动作到位
         if True:
             if len(last_bottom_frame.tips) == 0:
@@ -107,7 +106,6 @@ class DeepSquat(Action):
                 text_list.append("动作很到位")
             self.temp = (self.temp + 1) % 30
         return tips, text_list
-
 
 
     def push_new_frame(self, peaks, img):
@@ -123,7 +121,6 @@ class DeepSquat(Action):
 
         # if r_hip_y is the greatest in the neighbourhood with length 50, then it is a bottom frame
         # if r_hip_y is the smallest in the neighbourhood with length 50, then it is a top frame
-
         key_frame = ""
         if len(r_hip_y) >= 50:
             if r_hip_y[-25] == np.min(r_hip_y[-50:]) and np.where(r_hip_y[-50:-25] == r_hip_y[-25])[0].shape[0] == 0:
@@ -147,8 +144,8 @@ class DeepSquat(Action):
         overlap_result_img = blend_fg + img_bg
 
         result_img = np.zeros((cfg.output_height, 2 * cfg.output_width, 3), dtype=np.uint8)
-        result_img[:, :cfg.output_width] = overlap_result_img
-        # result_img[:, :cfg.output_width] = img_resize
+        # result_img[:, :cfg.output_width] = overlap_result_img
+        result_img[:, :cfg.output_width] = img_resize
         result_img[:, cfg.output_width:] = std_img
 
         return tips, key_frame, result_img
