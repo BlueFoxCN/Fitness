@@ -36,6 +36,7 @@ if __name__ == "__main__":
 
     output_path = "output_%s.mp4" % str(uuid.uuid4())
     deep_squat = DeepSquat()
+    back_squat = BackSquat()
 
-    visualize_gui = VisualizeGUI(result_queue, audio_thread, enable_predict, deep_squat, output_path=output_path)
+    visualize_gui = VisualizeGUI(result_queue, audio_thread, enable_predict, back_squat, output_path=output_path)
 

@@ -10,63 +10,91 @@ from .action import Action, Tip
 from .frame import *
 
 '''
-动作名称：深蹲
+动作名称：箭步后蹲
 动作要点：
-1. 下蹲时是否到位：通过检测下蹲最低点时胯部的纵坐标和膝盖纵坐标的关系判断
+1. 下蹲时膝盖是否到位：通过检测下蹲到最低点时膝盖的纵坐标和相应踝关节的纵坐标之间的关系判断
 2. 下蹲时膝盖是否过于靠前：通过检测下蹲最低点时膝盖横坐标和踝关键横坐标的关系判断
-3. 腰背有没有挺直：通过检测下蹲最低点时肩部横坐标和胯部横坐标的关系判断
+3. 下蹲时腰部是否挺直：通过检测下蹲到最低点时肩部横坐标和胯部横坐标的关系判断
 '''
 
-class DeepSquatTip1(Tip):
+class BackSquatTip1(Tip):
     def __init__(self):
-        self.action_name = "deep_squat"
+        self.action_name = "back_squat"
         self.tip_name = "tip_1"
         self.text = "下蹲不到位"
         self.tip = self._tip_path(self.tip_name)
 
     def _check(self, frame):
         # check if the right hip is two much higher than the right knee
-        if frame.r_hip.y != None and frame.r_knee.y != None and \
-            frame.r_knee.y - frame.r_hip.y > 10:
-            return True
+        if frame.r_knee.x != None and frame.l_knee.x != None and \
+           frame.r_knee.x < frame.l_knee.x:
+            # check right leg
+            if frame.r_ankle.y != None and frame.r_knee.y != None and \
+               frame.r_knee.y - frame.r_ankle.y > 10:
+                return True
+            else:
+                return False
+        elif frame.r_knee.x != None and frame.l_knee.x != None and \
+             frame.r_knee.x > frame.l_knee.x:
+            # check left leg
+            if frame.l_ankle.y != None and frame.l_knee.y != None and \
+               frame.l_knee.y - frame.l_ankle.y > 10:
+                return True
+            else:
+                return False
         else:
+            # wrong detection 
             return False
 
 
-class DeepSquatTip2(Tip):
+class BackSquatTip2(Tip):
     def __init__(self):
-        self.action_name = "deep_squat"
+        self.action_name = "back_squat"
         self.tip_name = "tip_2"
         self.text = "膝盖太靠前了"
         self.tip = self._tip_path(self.tip_name)
 
     def _check(self, frame):
         # check if the right knee is two much in front of the right ankle
-        if frame.r_knee.x != None and frame.r_knee.x != None and \
-            frame.r_knee.x - frame.r_ankle.x > 10:
-            return True
+        if frame.r_knee.x != None and frame.l_knee.x != None and \
+           frame.r_knee.x < frame.l_knee.x:
+            # check right leg
+            if frame.r_knee.x != None and frame.r_knee.x != None and \
+                frame.r_knee.x - frame.r_ankle.x > 10:
+                return True
+            else:
+                return False
+        elif frame.r_knee.x != None and frame.l_knee.x != None and \
+             frame.r_knee.x > frame.l_knee.x:
+            # check left leg
+            if frame.l_knee.x != None and frame.l_knee.x != None and \
+                frame.l_knee.x - frame.l_ankle.x > 10:
+                return True
+            else:
+                return False
         else:
+            # wrong detection 
             return False
 
 
-class DeepSquatTip3(Tip):
+class BackSquatTip3(Tip):
     def __init__(self):
-        self.action_name = "deep_squat"
+        self.action_name = "back_squat"
         self.tip_name = "tip_3"
         self.text = "腰背没有挺直"
         self.tip = self._tip_path(self.tip_name)
 
     def _check(self, frame):
         # check if the right shoulder is two much in front of the right hip
-        if frame.r_shoulder.x != None and frame.r_hip.x != None and \
-            frame.r_shoulder.x - frame.r_hip.x > 40:
+        if frame.r_shoulder.x != None and frame.r_hip.x != None and frame.l_hip.x != None and \
+            frame.r_shoulder.x - np.max([frame.l_hip.x, frame.r_hip.x]) > 20:
             return True
         else:
             return False
 
-class DeepSquatTip4(Tip):
+class BackSquatTip4(Tip):
     def __init__(self):
-        self.action_name = "deep_squat"
+        self.action_name = "back_squat"
         self.tip_name = "good_tip_1"
         self.text = "动作很到位"
         self.tip = self._tip_path(self.tip_name)
@@ -85,13 +113,13 @@ class DeepSquatTip4(Tip):
 # 12:left_knee   13:left_ankle    14:right_eye       15:left_eye
 # 16:right_ear   17:left_ear
 
-class DeepSquat(Action):
+class BackSquat(Action):
     def __init__(self):
         self.frame_interval = 2
-        self.shown_part = [0, 1, 2, 3, 4, 8, 9, 10, 14, 16]
-        self.name = "deep_squat"
-        self.correct_tips = [DeepSquatTip1(), DeepSquatTip2(), DeepSquatTip3()]
-        self.praise_tips = [DeepSquatTip4()]
+        self.shown_part = [0, 1, 2, 3, 4, 8, 9, 10, 11, 12, 13, 14, 16]
+        self.name = "back_squat"
+        self.correct_tips = [BackSquatTip1(), BackSquatTip2(), BackSquatTip3()]
+        self.praise_tips = [BackSquatTip4()]
         Action.__init__(self, os.path.join(cfg.std_data_dir, "%s.pkl" % self.name), self.frame_interval)
 
     def _get_tips(self):
