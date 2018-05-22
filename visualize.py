@@ -55,10 +55,9 @@ class VisualizeGUI():
         self.btn_next_frame3 = tk.Button(self.fm_status, text='New', command = None)
         self.btn_next_frame3.grid(row = 1, column=0, padx=10, pady=20)
         
-    def __init__(self, result_queue, audio_thread, enable_predict, visualize_queue, action, output_path=None):
+    def __init__(self, result_queue, audio_thread, enable_predict, action, output_path=None):
 
         self.result_queue = result_queue
-        self.visualize_queue = visualize_queue
         self.enable_predict = enable_predict
         self.action = action
         self.audio_thread = audio_thread
@@ -135,11 +134,3 @@ class VisualizeGUI():
         time.sleep(3)
         self.run()
 
-'''
-if __name__ == "__main__":
-    result_queue = Queue(maxsize=cfg.max_queue_len)
-    enable_predict = Event()
-
-    visualize_thread = VisualizeThread(result_queue, enable_predict, output_path="output_2.mp4")
-    visualize_thread.start()
-'''

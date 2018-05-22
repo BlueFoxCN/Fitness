@@ -22,7 +22,6 @@ if __name__ == "__main__":
 
     capture_queue = Queue(maxsize=cfg.max_queue_len)
     result_queue = Queue(maxsize=cfg.max_queue_len)
-    visualize_queue = Queue(maxsize=cfg.max_queue_len)
     enable_capture = Event()
     enable_predict = Event()
 
@@ -38,5 +37,5 @@ if __name__ == "__main__":
     output_path = "output_%s.mp4" % str(uuid.uuid4())
     deep_squat = DeepSquat()
 
-    visualize_gui = VisualizeGUI(result_queue, audio_thread, enable_predict, visualize_queue, deep_squat, output_path=output_path)
+    visualize_gui = VisualizeGUI(result_queue, audio_thread, enable_predict, deep_squat, output_path=output_path)
 
